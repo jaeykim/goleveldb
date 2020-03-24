@@ -8,6 +8,7 @@
 package memdb
 
 import (
+	"fmt"
 	"math/rand"
 	"sync"
 
@@ -171,11 +172,11 @@ func (i *dbIter) Release() {
 }
 
 const (
-	nKV = iota
-	nKey
-	nVal
-	nHeight
-	nNext
+	nKV     = iota // 0
+	nKey           // 1
+	nVal           // 2
+	nHeight        // 3
+	nNext          // 4
 )
 
 // DB is an in-memory key/value database.
@@ -211,8 +212,20 @@ func (p *DB) randHeight() (h int) {
 func (p *DB) findGE(key []byte, prev bool) (int, bool) {
 	node := 0
 	h := p.maxHeight - 1
+	// fmt.Println("[findGE] h: ", h)
+	/*
+		fmt.Println("[findGE] nodeData: ", p.nodeData, len(p.nodeData))
+		fmt.Println("[findGE] kvData: ", p.kvData, len(p.kvData))
+		fmt.Println("[findGE] key: ", key, len(key))
+		fmt.Println("[findGE] nKey: ", nKey)
+	*/
+	// fmt.Println("[findGE] node: ", node)
+	// fmt.Println("[findGE] nNext: ", nNext)
+	fmt.Println("[findGE] nKey: ", nKey)
+	fmt.Println("[findGE] h: ", h)
 	for {
 		next := p.nodeData[node+nNext+h]
+		// fmt.Println("[findGE] node:", node, "nNext:", nNext, "h:", h, "next:", next)
 		cmp := 1
 		if next != 0 {
 			o := p.nodeData[next]
@@ -225,6 +238,7 @@ func (p *DB) findGE(key []byte, prev bool) (int, bool) {
 			if prev {
 				p.prevNode[h] = node
 			} else if cmp == 0 {
+				fmt.Println("[findGE] match: ", next)
 				return next, true
 			}
 			if h == 0 {
@@ -278,7 +292,14 @@ func (p *DB) Put(key []byte, value []byte) error {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
+	/*
+		fmt.Println("[Put] nodeData: ", p.nodeData, len(p.nodeData))
+		fmt.Println("[Put] kvData: ", p.kvData, len(p.kvData))
+		fmt.Println("[Put] key: ", key, len(key))
+		fmt.Println("[Put] value: ", value, len(value))
+	*/
 	if node, exact := p.findGE(key, true); exact {
+		fmt.Println("[Put] ", node)
 		kvOffset := len(p.kvData)
 		p.kvData = append(p.kvData, key...)
 		p.kvData = append(p.kvData, value...)
@@ -289,7 +310,7 @@ func (p *DB) Put(key []byte, value []byte) error {
 		return nil
 	}
 
-	h := p.randHeight()
+	h := p.randHeight() // increment h with 1/4 possibility
 	if h > p.maxHeight {
 		for i := p.maxHeight; i < h; i++ {
 			p.prevNode[i] = 0
@@ -355,6 +376,8 @@ func (p *DB) Contains(key []byte) bool {
 // it is safe to modify the contents of the argument after Get returns.
 func (p *DB) Get(key []byte) (value []byte, err error) {
 	p.mu.RLock()
+	fmt.Println("[Get] nodeData: ", p.nodeData)
+	fmt.Println("[Get] kvData: ", p.kvData)
 	if node, exact := p.findGE(key, false); exact {
 		o := p.nodeData[node] + p.nodeData[node+nKey]
 		value = p.kvData[o : o+p.nodeData[node+nVal]]
@@ -373,11 +396,15 @@ func (p *DB) Get(key []byte) (value []byte, err error) {
 // it is safe to modify the contents of the argument after Find returns.
 func (p *DB) Find(key []byte) (rkey, value []byte, err error) {
 	p.mu.RLock()
+	/*
+		fmt.Println("[Find] nodeData: ", p.nodeData)
+		fmt.Println("[Find] kvData: ", p.kvData)
+	*/
 	if node, _ := p.findGE(key, false); node != 0 {
-		n := p.nodeData[node]
-		m := n + p.nodeData[node+nKey]
+		n := p.nodeData[node]          // nodeData: skip list
+		m := n + p.nodeData[node+nKey] // nKey: len(key)
 		rkey = p.kvData[n:m]
-		value = p.kvData[m : m+p.nodeData[node+nVal]]
+		value = p.kvData[m : m+p.nodeData[node+nVal]] // nVal: len(val)
 	} else {
 		err = ErrNotFound
 	}

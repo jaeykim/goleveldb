@@ -7,6 +7,7 @@
 package leveldb
 
 import (
+	"fmt"
 	"sync/atomic"
 	"time"
 
@@ -64,6 +65,7 @@ retry:
 }
 
 func (db *DB) flush(n int) (mdb *memDB, mdbFree int, err error) {
+	fmt.Println("Flush")
 	delayed := false
 	slowdownTrigger := db.s.o.GetWriteL0SlowdownTrigger()
 	pauseTrigger := db.s.o.GetWriteL0PauseTrigger()

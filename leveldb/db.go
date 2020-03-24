@@ -141,7 +141,6 @@ func openDB(s *session) (*DB, error) {
 			}
 			return nil, err
 		}
-
 	}
 
 	// Doesn't need to be included in the wait group.
