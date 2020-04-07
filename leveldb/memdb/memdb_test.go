@@ -10,10 +10,10 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	"github.com/syndtr/goleveldb/leveldb/comparer"
-	"github.com/syndtr/goleveldb/leveldb/iterator"
-	"github.com/syndtr/goleveldb/leveldb/testutil"
-	"github.com/syndtr/goleveldb/leveldb/util"
+	"github.com/jaeykim/goleveldb/leveldb/comparer"
+	"github.com/jaeykim/goleveldb/leveldb/iterator"
+	"github.com/jaeykim/goleveldb/leveldb/testutil"
+	"github.com/jaeykim/goleveldb/leveldb/util"
 )
 
 func (p *DB) TestFindLT(key []byte) (rkey, value []byte, err error) {

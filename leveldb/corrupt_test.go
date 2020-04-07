@@ -14,9 +14,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/syndtr/goleveldb/leveldb/filter"
-	"github.com/syndtr/goleveldb/leveldb/opt"
-	"github.com/syndtr/goleveldb/leveldb/storage"
+	"github.com/jaeykim/goleveldb/leveldb/filter"
+	"github.com/jaeykim/goleveldb/leveldb/opt"
+	"github.com/jaeykim/goleveldb/leveldb/storage"
 )
 
 const ctValSize = 1000
