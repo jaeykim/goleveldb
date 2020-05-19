@@ -7,6 +7,7 @@
 package leveldb
 
 import (
+	"fmt"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -547,6 +548,7 @@ func (db *DB) tableCompaction(c *compaction, noTrivial bool) {
 	rec.addCompPtr(c.sourceLevel, c.imax)
 
 	if !noTrivial && c.trivial() {
+		fmt.Println("[move compaction]")
 		t := c.levels[0][0]
 		db.logf("table@move L%d@%d -> L%d", c.sourceLevel, t.fd.Num, c.sourceLevel+1)
 		rec.delTable(c.sourceLevel, t.fd.Num)
@@ -593,10 +595,13 @@ func (db *DB) tableCompaction(c *compaction, noTrivial bool) {
 	}
 	switch c.typ {
 	case level0Compaction:
+		fmt.Println("[level0 compaction]")
 		atomic.AddUint32(&db.level0Comp, 1)
 	case nonLevel0Compaction:
+		fmt.Println("[non-level0 compaction]")
 		atomic.AddUint32(&db.nonLevel0Comp, 1)
 	case seekCompaction:
+		fmt.Println("[seek compaction]")
 		atomic.AddUint32(&db.seekComp, 1)
 	}
 }

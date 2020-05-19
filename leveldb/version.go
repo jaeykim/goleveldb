@@ -8,6 +8,7 @@ package leveldb
 
 import (
 	"fmt"
+	"strconv"
 	"sync/atomic"
 	"time"
 	"unsafe"
@@ -90,9 +91,10 @@ func (v *version) release() {
 func (v *version) walkOverlapping(aux tFiles, ikey internalKey, f func(level int, t *tFile) bool, lf func(level int) bool) {
 	ukey := ikey.ukey()
 
-	// Aux level.
+	// Aux level. What is Aux? Auxiliary?
 	if aux != nil {
-		for _, t := range aux {
+		for i, t := range aux {
+			fmt.Println("Aux: " + strconv.Itoa(i))
 			if t.overlaps(v.s.icmp, ukey, ukey) {
 				if !f(-1, t) {
 					return
@@ -106,9 +108,20 @@ func (v *version) walkOverlapping(aux tFiles, ikey internalKey, f func(level int
 	}
 
 	// Walk tables level-by-level.
+	fmt.Println(v.levels)
 	for level, tables := range v.levels {
+		fmt.Println("------------------------------------------------------")
+		fmt.Println("[level: " + strconv.Itoa(level) + ", tablelen: " + strconv.Itoa(len(tables)) + "]")
+
 		if len(tables) == 0 {
 			continue
+		}
+
+		for i, t := range tables {
+			fmt.Println("table " + strconv.Itoa(i))
+			fmt.Println("fd: " + t.fd.String())
+			fmt.Println("size: " + strconv.FormatInt(t.size, 10))
+			fmt.Println("range: (" + string(t.imin) + ", " + string(t.imax) + ")")
 		}
 
 		if level == 0 {
@@ -512,11 +525,11 @@ func (p *versionStaging) finish(trivial bool) *version {
 					added = append(added, tableFileFromRecord(r))
 				}
 				if level == 0 {
-					added.sortByNum()
+					added.sortByNum() // Sorts tables by file number in descending order.
 					index := nt.searchNumLess(added[len(added)-1].fd.Num)
 					nt = append(nt[:index], append(added, nt[index:]...)...)
 				} else {
-					added.sortByKey(p.base.s.icmp)
+					added.sortByKey(p.base.s.icmp) // Sorts tables by key in ascending order.
 					_, amax := added.getRange(p.base.s.icmp)
 					index := nt.searchMin(p.base.s.icmp, amax)
 					nt = append(nt[:index], append(added, nt[index:]...)...)

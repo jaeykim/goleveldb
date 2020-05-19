@@ -8,8 +8,8 @@
 package memdb
 
 import (
-	"fmt"
 	"math/rand"
+	"strconv"
 	"sync"
 
 	"github.com/jaeykim/goleveldb/leveldb/comparer"
@@ -208,21 +208,48 @@ func (p *DB) randHeight() (h int) {
 	return
 }
 
+func parseKvData(kvData []byte) string {
+	s := ""
+	for i, v := range kvData {
+		if (i+1)%5 == 0 {
+			s = s + string(v) + "  "
+		} else if i == len(kvData)-1 {
+			s = s + string(v)
+		} else {
+			s = s + string(v) + ","
+		}
+	}
+	return s
+}
+
+func parseNodeData(nodeData []int) string {
+	s := ""
+	for i, v := range nodeData {
+		if (i+1)%5 == 0 {
+			s = s + strconv.Itoa(v) + "  "
+		} else if i == len(nodeData)-1 {
+			s = s + strconv.Itoa(v)
+		} else {
+			s = s + strconv.Itoa(v) + ","
+		}
+	}
+	return s
+}
+
 // Must hold RW-lock if prev == true, as it use shared prevNode slice.
 func (p *DB) findGE(key []byte, prev bool) (int, bool) {
 	node := 0
 	h := p.maxHeight - 1
-	// fmt.Println("[findGE] h: ", h)
-	/*
-		fmt.Println("[findGE] nodeData: ", p.nodeData, len(p.nodeData))
-		fmt.Println("[findGE] kvData: ", p.kvData, len(p.kvData))
-		fmt.Println("[findGE] key: ", key, len(key))
-		fmt.Println("[findGE] nKey: ", nKey)
-	*/
+	// fmt.Println("[findGE] ----------new----------")
+	// fmt.Println("[findGE] kvData: ", p.kvData)
+	// fmt.Println("[findGE] kvData: ", string(p.kvData))
+	// fmt.Println("[findGE] nodeData: ", parseNodeData(p.nodeData))
 	// fmt.Println("[findGE] node: ", node)
+	// fmt.Println("[findGE] h: ", h)
 	// fmt.Println("[findGE] nNext: ", nNext)
-	fmt.Println("[findGE] nKey: ", nKey)
-	fmt.Println("[findGE] h: ", h)
+	// fmt.Println("[findGE] nKey: ", nKey)
+	// fmt.Println(p.nodeData)
+	// fmt.Println(string(p.kvData))
 	for {
 		next := p.nodeData[node+nNext+h]
 		// fmt.Println("[findGE] node:", node, "nNext:", nNext, "h:", h, "next:", next)
@@ -238,7 +265,7 @@ func (p *DB) findGE(key []byte, prev bool) (int, bool) {
 			if prev {
 				p.prevNode[h] = node
 			} else if cmp == 0 {
-				fmt.Println("[findGE] match: ", next)
+				// fmt.Println("[findGE] match: ", next)
 				return next, true
 			}
 			if h == 0 {
@@ -299,7 +326,7 @@ func (p *DB) Put(key []byte, value []byte) error {
 		fmt.Println("[Put] value: ", value, len(value))
 	*/
 	if node, exact := p.findGE(key, true); exact {
-		fmt.Println("[Put] ", node)
+		// fmt.Println("[Put] ", node)
 		kvOffset := len(p.kvData)
 		p.kvData = append(p.kvData, key...)
 		p.kvData = append(p.kvData, value...)
@@ -322,13 +349,16 @@ func (p *DB) Put(key []byte, value []byte) error {
 	p.kvData = append(p.kvData, key...)
 	p.kvData = append(p.kvData, value...)
 	// Node
+	// fmt.Println("[Put] nodeData(0): ", parseNodeData(p.nodeData))
 	node := len(p.nodeData)
 	p.nodeData = append(p.nodeData, kvOffset, len(key), len(value), h)
+	// fmt.Println("[Put] nodeData(1): ", parseNodeData(p.nodeData))
 	for i, n := range p.prevNode[:h] {
 		m := n + nNext + i
 		p.nodeData = append(p.nodeData, p.nodeData[m])
 		p.nodeData[m] = node
 	}
+	// fmt.Println("[Put] nodeData(2): ", parseNodeData(p.nodeData))
 
 	p.kvSize += len(key) + len(value)
 	p.n++
@@ -376,8 +406,8 @@ func (p *DB) Contains(key []byte) bool {
 // it is safe to modify the contents of the argument after Get returns.
 func (p *DB) Get(key []byte) (value []byte, err error) {
 	p.mu.RLock()
-	fmt.Println("[Get] nodeData: ", p.nodeData)
-	fmt.Println("[Get] kvData: ", p.kvData)
+	// fmt.Println("[Get] nodeData: ", p.nodeData)
+	// fmt.Println("[Get] kvData: ", p.kvData)
 	if node, exact := p.findGE(key, false); exact {
 		o := p.nodeData[node] + p.nodeData[node+nKey]
 		value = p.kvData[o : o+p.nodeData[node+nVal]]
